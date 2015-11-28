@@ -16,37 +16,52 @@
 
 package bioplat.examples.http.invoker.server.springboot;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.context.embedded.ServletRegistrationBean;
 import org.springframework.boot.context.web.SpringBootServletInitializer;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.remoting.httpinvoker.HttpInvokerServiceExporter;
+import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;
 import org.springframework.web.servlet.DispatcherServlet;
 
-@Configuration
-@EnableAutoConfiguration
-public class HttpInvokerExporterApplication extends SpringBootServletInitializer {
+import bioplat.examples.http.invoker.common.services.IBioplatService;
+import bioplat.examples.http.invoker.server.service.impl.BioplatServiceImpl;
 
-	@Bean
-	public DispatcherServlet dispatcherServlet() {
-		DispatcherServlet ds = new DispatcherServlet();
-		return ds;
-	}
+@ComponentScan(basePackages="bioplat.examples.http.invoker.server")
+@EnableAutoConfiguration
+public class HttpInvokerExporterApplication extends SpringBootServletInitializer{
 	
+	@Autowired
+	private IBioplatService pingService;
+
 	@Bean
 	public ServletRegistrationBean dispatcherServletRegistration() {
-	    ServletRegistrationBean registration = new ServletRegistrationBean(dispatcherServlet(), "/bioplatRemote/*");
-	    registration.setName("bioplatRemoteRegistration");
-	    return registration;
+//		HttpInvokerServlet ds = new HttpInvokerServlet();
+		DispatcherServlet ds = new DispatcherServlet();
+		AnnotationConfigWebApplicationContext appCtx = new AnnotationConfigWebApplicationContext();
+		ds.setApplicationContext(appCtx);
+		ServletRegistrationBean registration = new ServletRegistrationBean(ds, "/bioplatRemote/*");
+		registration.setName("bioplatRemoteRegistration");
+		return registration;
 	}
 	
 	
 
-	@Override
-	protected SpringApplicationBuilder configure(SpringApplicationBuilder application) {
-		return application.sources(HttpInvokerExporterApplication.class);
+	@Bean(name = "pingServiceBean")
+	public IBioplatService getBioplatService(){
+		return new BioplatServiceImpl();
+	}
+	
+	@Bean(name="/PingService")
+	public HttpInvokerServiceExporter getPingHttpInvokerServiceExporter() {
+		HttpInvokerServiceExporter httpISE = new HttpInvokerServiceExporter();
+		httpISE.setService(pingService);
+		httpISE.setServiceInterface(IBioplatService.class);
+		return httpISE;
+
 	}
 
 	public static void main(String[] args) throws Exception {
